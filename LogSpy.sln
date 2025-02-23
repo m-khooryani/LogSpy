@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35728.132 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{474AD367-9173-49E0-8B41-7DE0D6C4424B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{8CBC38DC-C17E-4E77-9F39-65F769569D17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogSpy", "LogSpy\LogSpy.csproj", "{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1BDECDA2-C675-4DCA-BE17-16A6A7F36FAD} = {474AD367-9173-49E0-8B41-7DE0D6C4424B}
+	EndGlobalSection
+EndGlobal
