@@ -2,7 +2,7 @@
 
 namespace LogSpy;
 
-internal class LogToActionLoggerProvider : ILoggerProvider
+public class SpyLoggerProvider : ILoggerProvider
 {
     private readonly bool _isScopeLoggingEnabled;
     private readonly LogCaptureService _captureService;
@@ -11,7 +11,7 @@ internal class LogToActionLoggerProvider : ILoggerProvider
     private readonly LogLevel _defaultLogLevel;
     private readonly IDictionary<string, LogLevel> _logLevels;
 
-    public LogToActionLoggerProvider(
+    public SpyLoggerProvider(
         bool isScopeLoggingEnabled,
         LogCaptureService captureService,
         IDictionary<string, LogLevel> logLevels,
