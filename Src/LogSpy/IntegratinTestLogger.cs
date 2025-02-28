@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Text;
 
 namespace LogSpy;
 
@@ -58,58 +60,95 @@ internal class IntegratinTestLogger : ILogger
     }
 
     public void Log<TState>(
-        LogLevel logLevel,
-        EventId eventId,
-        TState state,
-        Exception exception,
-        Func<TState, Exception, string> formatter)
+    LogLevel logLevel,
+    EventId eventId,
+    TState state,
+    Exception exception,
+    Func<TState, Exception, string> formatter)
     {
         if (!IsEnabled(logLevel))
-        {
             return;
-        }
 
-        var scopeStack = _scopes ?? new Stack<string>();
-        var scopes = _isScopeLoggingEnabled
-            ? scopeStack.Reverse().ToArray() // oldest scope first
-            : Array.Empty<string>();
+        // Thread & Task info
+        var threadId = Thread.CurrentThread.ManagedThreadId;
+        var taskId = Task.CurrentId; // null if not in a known task context
 
-        var message = formatter != null
-            ? formatter(state, exception)
-            : state.ToString();
+        // Correlation
+        var correlationId = CorrelationContext.CurrentId;
 
-        // Enqueue for later assertions
-        LogEntry entry = new LogEntry
+        // Activity (System.Diagnostics)
+        var currentActivity = Activity.Current;
+        var traceId = currentActivity?.TraceId.ToString();
+        var spanId = currentActivity?.SpanId.ToString();
+
+        // Build message
+        var message = formatter?.Invoke(state, exception) ?? state?.ToString();
+
+        // Build final LogEntry with all the extra info
+        var logEntry = new LogEntry
         {
             LogLevel = logLevel,
             EventId = eventId,
             Message = message,
             Exception = exception,
             Category = _categoryName,
-            Scopes = scopes
-        };
-        _captureService.AddEntry(entry);
+            Scopes = _isScopeLoggingEnabled ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
 
-        // Also write to action sink if available
-        _logAction?.Invoke(
-            FormatMessageForOutput(logLevel, message, scopes, exception));
+            // NEW fields
+            CorrelationId = correlationId,
+            ThreadId = threadId,
+            TaskId = taskId,
+            TraceId = traceId,
+            SpanId = spanId
+        };
+
+        // Store it in your capture service
+        _captureService.AddEntry(logEntry);
+
+        // Also format the text for your console/test output if needed
+        _logAction?.Invoke(FormatMessageForOutput(
+            logLevel, message, logEntry.Scopes, exception, correlationId, threadId, traceId, spanId
+        ));
     }
 
     private string FormatMessageForOutput(
-        LogLevel logLevel,
+        LogLevel level,
         string message,
         IEnumerable<string> scopes,
-        Exception exception)
+        Exception exception,
+        string correlationId,
+        int threadId,
+        string traceId,
+        string spanId)
     {
-        var scopeInfo = scopes.Any()
-            ? $"{Environment.NewLine}Scopes: {string.Join(" => ", scopes)}{Environment.NewLine}"
-            : string.Empty;
+        var sb = new StringBuilder();
+        sb.Append($"[{level}] ({_categoryName}) {message}");
 
-        var exInfo = exception != null
-            ? $"{Environment.NewLine}Exception: {exception}"
-            : string.Empty;
+        if (!string.IsNullOrEmpty(correlationId))
+        {
+            sb.Append($" | CorrId: {correlationId}");
+        }
 
-        return $"[{logLevel}] ({_categoryName}) {message}{scopeInfo}{exInfo}";
+        sb.Append($" | Thread:{threadId}");
+
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            sb.Append($" | TraceId:{traceId} SpanId:{spanId}");
+        }
+
+        if (scopes.Any())
+        {
+            sb.AppendLine();
+            sb.Append($"Scopes: {string.Join(" => ", scopes)}");
+        }
+
+        if (exception != null)
+        {
+            sb.AppendLine();
+            sb.Append("Exception: ").Append(exception);
+        }
+
+        return sb.ToString();
     }
 
     private class DisposableScope : IDisposable

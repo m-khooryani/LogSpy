@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using Xunit.Abstractions;
 
 namespace LogSpy.IntegrationTests;
@@ -52,6 +53,77 @@ public class UnitTest1
         var violations = _logCaptureService.Violations;
         Assert.True(violations.Count == 0,
             $"Some log rule was violated: {string.Join(Environment.NewLine, violations)}");
+    }
+
+    [Fact]
+    public void MyTest_WithCorrelation()
+    {
+        using (CorrelationContext.BeginCorrelationScope("TestId-XYZ"))
+        {
+            // Create your service provider or logger
+            var captureService = new LogCaptureService();
+
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.ClearProviders();
+                builder.AddProvider(new SpyLoggerProvider(
+                    false,
+                    captureService,
+                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } }
+                ));
+            });
+
+            var logger = loggerFactory.CreateLogger("MyTestLogger");
+
+            // Act
+            logger.LogInformation("Starting operation...");
+            logger.LogWarning("Something might be slow.");
+
+            // Assert
+            var entries = captureService.Entries;
+            // Each entry should have CorrelationId = "TestId-XYZ"
+            Assert.All(entries, e => Assert.Equal("TestId-XYZ", e.CorrelationId));
+        }
+    }
+
+    [Fact]
+    public void MyTest_WithActivity()
+    {
+        var activity = new Activity("MyIntegrationTest")
+            .SetIdFormat(ActivityIdFormat.W3C);
+
+        activity.Start();
+
+        try
+        {
+            // logger config ...
+            var capture = new LogCaptureService();
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.ClearProviders();
+                builder.AddProvider(new SpyLoggerProvider(
+                    false,
+                    capture,
+                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } }
+                ));
+            });
+
+            var logger = loggerFactory.CreateLogger("MyTestWithActivity");
+
+            logger.LogInformation("Hello from inside an activity");
+
+            // We can check logs
+            var entries = capture.Entries;
+            Assert.NotEmpty(entries);
+
+            // We expect the first entry to have the same TraceId as activity.TraceId
+            var first = entries.First();
+            Assert.Equal(activity.TraceId.ToString(), first.TraceId);
+        }
+        finally
+        {
+            activity.Stop();
+        }
     }
 
     private LoggerFactory GetLoggerFactory()

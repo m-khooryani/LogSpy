@@ -10,4 +10,10 @@ public record LogEntry
     public Exception Exception { get; init; }
     public string Category { get; init; }
     public IReadOnlyList<string> Scopes { get; init; }
+
+    public string CorrelationId { get; init; }
+    public int ThreadId { get; init; }
+    public int? TaskId { get; init; }
+    public string TraceId { get; init; }
+    public string SpanId { get; init; }
 }
