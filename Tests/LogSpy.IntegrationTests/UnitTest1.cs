@@ -180,7 +180,7 @@ public class UnitTest1
                     EnableScopes = true,
                     OutputFormat = LogOutputFormat.Json
                 },
-                logLine => Console.WriteLine(logLine) // or test output
+                new TestOutputSink(Output)
             ));
         });
 
@@ -208,7 +208,7 @@ public class UnitTest1
                     EnableScopes = true,
                     OutputFormat = LogOutputFormat.Json
                 },
-                logLine => Console.WriteLine(logLine) // or test output
+                new TestOutputSink(Output)
             ));
         });
 
@@ -238,7 +238,7 @@ public class UnitTest1
                     EnableScopes = true,
                     OutputFormat = LogOutputFormat.Json
                 },
-                logLine => Console.WriteLine(logLine) // or test output
+                new TestOutputSink(Output)
             ));
         });
 
@@ -279,16 +279,7 @@ public class UnitTest1
                 {
                     EnableScopes = false,
                 },
-                log =>
-                {
-                    try
-                    {
-                        Output?.WriteLine(log);
-                    }
-                    catch
-                    {
-                    }
-                })
+                new TestOutputSink(Output))
         });
     }
 }

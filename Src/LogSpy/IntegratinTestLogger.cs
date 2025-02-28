@@ -1,21 +1,18 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 
 namespace LogSpy;
 
-internal class IntegratinTestLogger : ILogger
+internal class IntegratinTestLogger : ILogger, IDisposable
 {
     private readonly IntegrationTestLoggerOptions _isScopeLoggingEnabled;
     private readonly string _categoryName;
     private readonly LogLevel _minLogLevel;
     private readonly LogCaptureService _captureService;
     private readonly Stack<string> _scopes;
-    private readonly Action<string> _logAction;
+    private readonly ILogSink _sink;
 
     public IntegratinTestLogger(
         string categoryName,
@@ -23,14 +20,14 @@ internal class IntegratinTestLogger : ILogger
         LogCaptureService captureService,
         Stack<string> scopes,
         IntegrationTestLoggerOptions options,
-        Action<string> logAction)
+        ILogSink sink)
     {
         _isScopeLoggingEnabled = options;
         _categoryName = categoryName;
         _minLogLevel = minLogLevel;
         _captureService = captureService;
-        _logAction = logAction;
         _scopes = scopes;
+        _sink = sink;
     }
 
     public IDisposable BeginScope<TState>(TState state)
@@ -56,6 +53,11 @@ internal class IntegratinTestLogger : ILogger
                 scopeStack.Pop();
             }
         });
+    }
+
+    public void Dispose()
+    {
+        (_sink as IDisposable)?.Dispose();
     }
 
     public bool IsEnabled(LogLevel logLevel)
@@ -125,7 +127,7 @@ internal class IntegratinTestLogger : ILogger
         _captureService.AddEntry(logEntry);
 
         // Also format the text for your console/test output if needed
-        _logAction?.Invoke(FormatLogText(logEntry));
+        _sink?.Write(FormatLogText(logEntry));
     }
     private string FormatLogText(LogEntry entry)
     {
