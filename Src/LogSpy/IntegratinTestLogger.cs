@@ -1,6 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Diagnostics;
+using System.Reflection.Emit;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
 
 namespace LogSpy;
 
@@ -120,49 +124,50 @@ internal class IntegratinTestLogger : ILogger
         _captureService.AddEntry(logEntry);
 
         // Also format the text for your console/test output if needed
-        _logAction?.Invoke(FormatMessageForOutput(
-            logLevel, message, logEntry.Scopes, exception, correlationId, threadId, traceId, spanId
-        ));
+        _logAction?.Invoke(FormatLogText(logEntry));
     }
-
-    private string FormatMessageForOutput(
-        LogLevel level,
-        string message,
-        IEnumerable<string> scopes,
-        Exception exception,
-        string correlationId,
-        int threadId,
-        string traceId,
-        string spanId)
+    private string FormatLogText(LogEntry entry)
     {
-        var sb = new StringBuilder();
-        sb.Append($"[{level}] ({_categoryName}) {message}");
-
-        if (!string.IsNullOrEmpty(correlationId))
+        if (_isScopeLoggingEnabled.OutputFormat == LogOutputFormat.Json)
         {
-            sb.Append($" | CorrId: {correlationId}");
+            // JSON
+            return JsonSerializer.Serialize(entry, new JsonSerializerOptions
+            {
+                WriteIndented = false
+            });
         }
-
-        sb.Append($" | Thread:{threadId}");
-
-        if (!string.IsNullOrEmpty(traceId))
+        else
         {
-            sb.Append($" | TraceId:{traceId} SpanId:{spanId}");
-        }
+            // Plain text
+            var sb = new StringBuilder();
+            sb.Append($"[{entry.LogLevel}] ({_categoryName}) {entry.Message}");
 
-        if (scopes.Any())
-        {
-            sb.AppendLine();
-            sb.Append($"Scopes: {string.Join(" => ", scopes)}");
-        }
+            if (!string.IsNullOrEmpty(entry.CorrelationId))
+            {
+                sb.Append($" | CorrId: {entry.CorrelationId}");
+            }
 
-        if (exception != null)
-        {
-            sb.AppendLine();
-            sb.Append("Exception: ").Append(exception);
-        }
+            sb.Append($" | Thread:{entry.ThreadId}");
 
-        return sb.ToString();
+            if (!string.IsNullOrEmpty(entry.TraceId))
+            {
+                sb.Append($" | TraceId:{entry.TraceId} SpanId:{entry.SpanId}");
+            }
+
+            if (entry.Scopes.Any())
+            {
+                sb.AppendLine();
+                sb.Append($"Scopes: {string.Join(" => ", entry.Scopes)}");
+            }
+
+            if (entry.Exception != null)
+            {
+                sb.AppendLine();
+                sb.Append("Exception: ").Append(entry.Exception);
+            }
+
+            return sb.ToString();
+        }
     }
 
     private class DisposableScope : IDisposable

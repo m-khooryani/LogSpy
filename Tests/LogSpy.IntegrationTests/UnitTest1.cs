@@ -164,6 +164,33 @@ public class UnitTest1
         Assert.Equal("10.0.0.1", entry.Properties["IPAddress"]);
     }
 
+    [Fact]
+    public void Test_JsonOutput()
+    {
+        var captureService = new LogCaptureService();
+
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddProvider(new SpyLoggerProvider(
+                captureService,
+                new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                new IntegrationTestLoggerOptions
+                {
+                    EnableScopes = true,
+                    OutputFormat = LogOutputFormat.Json
+                },
+                logLine => Console.WriteLine(logLine) // or test output
+            ));
+        });
+
+        var logger = loggerFactory.CreateLogger("JsonTest");
+
+        logger.LogWarning("A warning with {DataValue}", 99);
+
+        // The console lines will be JSON, e.g.:
+        // {"LogLevel":"Warning","EventId":{"Id":0,"Name":null}...
+    }
 
     private LoggerFactory GetLoggerFactory()
     {
