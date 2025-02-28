@@ -117,7 +117,8 @@ internal class IntegratinTestLogger : ILogger
             TaskId = taskId,
             TraceId = traceId,
             SpanId = spanId,
-            Properties = properties ?? new Dictionary<string, object>()
+            Properties = properties ?? new Dictionary<string, object>(),
+            Timestamp = DateTimeOffset.UtcNow
         };
 
         // Store it in your capture service

@@ -192,6 +192,78 @@ public class UnitTest1
         // {"LogLevel":"Warning","EventId":{"Id":0,"Name":null}...
     }
 
+    [Fact]
+    public void ExampleTest()
+    {
+        var captureService = new LogCaptureService();
+
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddProvider(new SpyLoggerProvider(
+                captureService,
+                new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                new IntegrationTestLoggerOptions
+                {
+                    EnableScopes = true,
+                    OutputFormat = LogOutputFormat.Json
+                },
+                logLine => Console.WriteLine(logLine) // or test output
+            ));
+        });
+
+        // Query logs for errors
+        var errors = captureService.GetByLevel(LogLevel.Error);
+
+        // Query logs containing "Forbidden"
+        var forbiddenLogs = captureService.GetByMessageContains("Forbidden");
+
+        Assert.Empty(forbiddenLogs);
+    }
+
+    [Fact]
+    public void Test_TimeBasedAssertions()
+    {
+        // Arrange
+        var captureService = new LogCaptureService();
+
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddProvider(new SpyLoggerProvider(
+                captureService,
+                new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                new IntegrationTestLoggerOptions
+                {
+                    EnableScopes = true,
+                    OutputFormat = LogOutputFormat.Json
+                },
+                logLine => Console.WriteLine(logLine) // or test output
+            ));
+        });
+
+        var logger = loggerFactory.CreateLogger("JsonTest");
+
+        var t0 = DateTimeOffset.UtcNow;
+        logger.LogInformation("Starting the operation");
+
+        // Act
+        Thread.Sleep(250); // simulate something
+        logger.LogError("An error occurred in the first 250ms");
+
+        Thread.Sleep(300);
+        logger.LogWarning("A warning after 550ms total");
+        var t1 = DateTimeOffset.UtcNow;
+
+        // We want to see if the error happened within the first 500ms
+        var logsInFirst500ms = captureService.GetByTimestampRange(t0, t0.AddMilliseconds(500));
+        Assert.Contains(logsInFirst500ms, e => e.LogLevel == LogLevel.Error);
+
+        // We also check that the warning was *after* 500ms
+        var logsAfter500ms = captureService.GetByTimestampRange(t0.AddMilliseconds(500), t1);
+        Assert.Contains(logsAfter500ms, e => e.LogLevel == LogLevel.Warning);
+    }
+
     private LoggerFactory GetLoggerFactory()
     {
         return new LoggerFactory(new[]
