@@ -6,7 +6,7 @@ namespace LogSpy;
 
 internal class IntegratinTestLogger : ILogger
 {
-    private readonly bool _isScopeLoggingEnabled;
+    private readonly IntegrationTestLoggerOptions _isScopeLoggingEnabled;
     private readonly string _categoryName;
     private readonly LogLevel _minLogLevel;
     private readonly LogCaptureService _captureService;
@@ -14,14 +14,14 @@ internal class IntegratinTestLogger : ILogger
     private readonly Action<string> _logAction;
 
     public IntegratinTestLogger(
-        bool isScopeLoggingEnabled,
         string categoryName,
         LogLevel minLogLevel,
         LogCaptureService captureService,
         Stack<string> scopes,
+        IntegrationTestLoggerOptions options,
         Action<string> logAction)
     {
-        _isScopeLoggingEnabled = isScopeLoggingEnabled;
+        _isScopeLoggingEnabled = options;
         _categoryName = categoryName;
         _minLogLevel = minLogLevel;
         _captureService = captureService;
@@ -67,7 +67,20 @@ internal class IntegratinTestLogger : ILogger
     Func<TState, Exception, string> formatter)
     {
         if (!IsEnabled(logLevel))
+        {
             return;
+        }
+
+        // Check for structured state
+        Dictionary<string, object> properties = null;
+        if (state is IReadOnlyList<KeyValuePair<string, object>> stateList)
+        {
+            properties = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in stateList)
+            {
+                properties[kv.Key] = kv.Value;
+            }
+        }
 
         // Thread & Task info
         var threadId = Thread.CurrentThread.ManagedThreadId;
@@ -92,14 +105,15 @@ internal class IntegratinTestLogger : ILogger
             Message = message,
             Exception = exception,
             Category = _categoryName,
-            Scopes = _isScopeLoggingEnabled ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
+            Scopes = _isScopeLoggingEnabled.EnableScopes ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
 
             // NEW fields
             CorrelationId = correlationId,
             ThreadId = threadId,
             TaskId = taskId,
             TraceId = traceId,
-            SpanId = spanId
+            SpanId = spanId,
+            Properties = properties ?? new Dictionary<string, object>()
         };
 
         // Store it in your capture service

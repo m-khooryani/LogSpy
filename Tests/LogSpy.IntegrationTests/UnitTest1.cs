@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
 using Xunit.Abstractions;
 
@@ -67,9 +66,12 @@ public class UnitTest1
             {
                 builder.ClearProviders();
                 builder.AddProvider(new SpyLoggerProvider(
-                    false,
                     captureService,
-                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } }
+                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                    new IntegrationTestLoggerOptions
+                    {
+                        EnableScopes = false,
+                    }
                 ));
             });
 
@@ -102,9 +104,12 @@ public class UnitTest1
             {
                 builder.ClearProviders();
                 builder.AddProvider(new SpyLoggerProvider(
-                    false,
                     capture,
-                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } }
+                    new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                    new IntegrationTestLoggerOptions
+                    {
+                        EnableScopes = false,
+                    }
                 ));
             });
 
@@ -126,17 +131,54 @@ public class UnitTest1
         }
     }
 
+    [Fact]
+    public void Test_StructuredProperties()
+    {
+        var captureService = new LogCaptureService();
+
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddProvider(new SpyLoggerProvider(
+                captureService,
+                new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
+                new IntegrationTestLoggerOptions
+                {
+                    EnableScopes = false,
+                }
+            ));
+        });
+
+        var logger = loggerFactory.CreateLogger("MyCategory");
+
+        // Act
+        logger.LogInformation("User {UserId} logged in from {IPAddress}", 123, "10.0.0.1");
+
+        // Assert
+        var entry = Assert.Single(captureService.Entries);
+        Assert.Equal("User 123 logged in from 10.0.0.1", entry.Message);
+
+        // Check structured properties
+        Assert.Contains("UserId", entry.Properties.Keys);
+        Assert.Equal(123, entry.Properties["UserId"]);
+        Assert.Equal("10.0.0.1", entry.Properties["IPAddress"]);
+    }
+
+
     private LoggerFactory GetLoggerFactory()
     {
         return new LoggerFactory(new[]
         {
             new SpyLoggerProvider(
-                false,
                 _logCaptureService,
                 new Dictionary<string, LogLevel>()
                 {
                     { "Default", LogLevel.Information },
                     { "Microsoft", LogLevel.Warning },
+                },
+                new IntegrationTestLoggerOptions
+                {
+                    EnableScopes = false,
                 },
                 log =>
                 {

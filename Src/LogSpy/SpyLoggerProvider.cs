@@ -4,7 +4,7 @@ namespace LogSpy;
 
 public class SpyLoggerProvider : ILoggerProvider
 {
-    private readonly bool _isScopeLoggingEnabled;
+    private readonly IntegrationTestLoggerOptions _isScopeLoggingEnabled;
     private readonly LogCaptureService _captureService;
     private readonly AsyncLocal<Stack<string>> _scopes = new AsyncLocal<Stack<string>>();
     private readonly Action<string> _logAction;
@@ -12,14 +12,14 @@ public class SpyLoggerProvider : ILoggerProvider
     private readonly IDictionary<string, LogLevel> _logLevels;
 
     public SpyLoggerProvider(
-        bool isScopeLoggingEnabled,
         LogCaptureService captureService,
         IDictionary<string, LogLevel> logLevels,
+        IntegrationTestLoggerOptions options,
         Action<string> logAction = null)
     {
-        _isScopeLoggingEnabled = isScopeLoggingEnabled;
+        _isScopeLoggingEnabled = options;
         _captureService = captureService;
-        _logAction = logAction; 
+        _logAction = logAction;
         _logLevels = logLevels;
         _defaultLogLevel = logLevels["Default"];
     }
@@ -38,11 +38,11 @@ public class SpyLoggerProvider : ILoggerProvider
         }
 
         return new IntegratinTestLogger(
-            _isScopeLoggingEnabled,
             categoryName,
             minLogLevel,
             _captureService,
             _scopes.Value,
+            _isScopeLoggingEnabled,
             _logAction);
     }
 
