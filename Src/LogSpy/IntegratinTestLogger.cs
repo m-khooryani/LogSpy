@@ -12,7 +12,8 @@ internal class IntegratinTestLogger : ILogger, IDisposable
     private readonly LogLevel _minLogLevel;
     private readonly LogCaptureService _captureService;
     private readonly Stack<string> _scopes;
-    private readonly ILogSink _sink;
+    private readonly ILogSink? _sink;
+    private readonly ILogFormatter _formatter;
 
     public IntegratinTestLogger(
         string categoryName,
@@ -20,7 +21,8 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         LogCaptureService captureService,
         Stack<string> scopes,
         IntegrationTestLoggerOptions options,
-        ILogSink sink)
+        ILogSink? sink,
+        ILogFormatter formatter)
     {
         _isScopeLoggingEnabled = options;
         _categoryName = categoryName;
@@ -28,6 +30,7 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         _captureService = captureService;
         _scopes = scopes;
         _sink = sink;
+        _formatter = formatter;
     }
 
     public IDisposable BeginScope<TState>(TState state)
@@ -89,7 +92,7 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         }
 
         // Thread & Task info
-        var threadId = Thread.CurrentThread.ManagedThreadId;
+        var threadId = Environment.CurrentManagedThreadId;
         var taskId = Task.CurrentId; // null if not in a known task context
 
         // Correlation
@@ -129,48 +132,10 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         // Also format the text for your console/test output if needed
         _sink?.Write(FormatLogText(logEntry));
     }
+
     private string FormatLogText(LogEntry entry)
     {
-        if (_isScopeLoggingEnabled.OutputFormat == LogOutputFormat.Json)
-        {
-            // JSON
-            return JsonSerializer.Serialize(entry, new JsonSerializerOptions
-            {
-                WriteIndented = false
-            });
-        }
-        else
-        {
-            // Plain text
-            var sb = new StringBuilder();
-            sb.Append($"[{entry.LogLevel}] ({_categoryName}) {entry.Message}");
-
-            if (!string.IsNullOrEmpty(entry.CorrelationId))
-            {
-                sb.Append($" | CorrId: {entry.CorrelationId}");
-            }
-
-            sb.Append($" | Thread:{entry.ThreadId}");
-
-            if (!string.IsNullOrEmpty(entry.TraceId))
-            {
-                sb.Append($" | TraceId:{entry.TraceId} SpanId:{entry.SpanId}");
-            }
-
-            if (entry.Scopes.Any())
-            {
-                sb.AppendLine();
-                sb.Append($"Scopes: {string.Join(" => ", entry.Scopes)}");
-            }
-
-            if (entry.Exception != null)
-            {
-                sb.AppendLine();
-                sb.Append("Exception: ").Append(entry.Exception);
-            }
-
-            return sb.ToString();
-        }
+        return _formatter.Format(entry);
     }
 
     private class DisposableScope : IDisposable

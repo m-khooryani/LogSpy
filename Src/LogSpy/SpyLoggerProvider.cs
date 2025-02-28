@@ -10,11 +10,13 @@ public class SpyLoggerProvider : ILoggerProvider
     private readonly ILogSink? _sink;  
     private readonly LogLevel _defaultLogLevel;
     private readonly IDictionary<string, LogLevel> _logLevels;
+    private readonly ILogFormatter _formatter;
 
     public SpyLoggerProvider(
         LogCaptureService captureService,
         IDictionary<string, LogLevel> logLevels,
         IntegrationTestLoggerOptions options,
+        ILogFormatter formatter,
         ILogSink? sink = null)
     {
         _isScopeLoggingEnabled = options;
@@ -22,6 +24,7 @@ public class SpyLoggerProvider : ILoggerProvider
         _sink = sink;
         _logLevels = logLevels;
         _defaultLogLevel = logLevels["Default"];
+        _formatter = formatter;
     }
 
     public ILogger CreateLogger(string categoryName)
@@ -43,7 +46,8 @@ public class SpyLoggerProvider : ILoggerProvider
             _captureService,
             _scopes.Value,
             _isScopeLoggingEnabled,
-            _sink);
+            _sink,
+            _formatter);
     }
 
     public void Dispose()

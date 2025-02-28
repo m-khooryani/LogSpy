@@ -22,10 +22,7 @@ public class UnitTest1
         services.AddSingleton<ClassA>();
 
 
-        services.AddLogging(builder =>
-        {
-            builder.ClearProviders();
-        });
+        services.AddLogging();
 
         var loggerFactory = GetLoggerFactory();
         services.AddSingleton<ILoggerFactory>(loggerFactory);
@@ -71,7 +68,8 @@ public class UnitTest1
                     new IntegrationTestLoggerOptions
                     {
                         EnableScopes = false,
-                    }
+                    },
+                    new PlainTextLogFormatter()
                 ));
             });
 
@@ -109,7 +107,8 @@ public class UnitTest1
                     new IntegrationTestLoggerOptions
                     {
                         EnableScopes = false,
-                    }
+                    },
+                    new PlainTextLogFormatter()
                 ));
             });
 
@@ -145,7 +144,8 @@ public class UnitTest1
                 new IntegrationTestLoggerOptions
                 {
                     EnableScopes = false,
-                }
+                },
+                new PlainTextLogFormatter()
             ));
         });
 
@@ -178,8 +178,8 @@ public class UnitTest1
                 new IntegrationTestLoggerOptions
                 {
                     EnableScopes = true,
-                    OutputFormat = LogOutputFormat.Json
                 },
+                new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -206,8 +206,8 @@ public class UnitTest1
                 new IntegrationTestLoggerOptions
                 {
                     EnableScopes = true,
-                    OutputFormat = LogOutputFormat.Json
                 },
+                new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -236,8 +236,8 @@ public class UnitTest1
                 new IntegrationTestLoggerOptions
                 {
                     EnableScopes = true,
-                    OutputFormat = LogOutputFormat.Json
                 },
+                new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -279,6 +279,7 @@ public class UnitTest1
                 {
                     EnableScopes = false,
                 },
+                new PlainTextLogFormatter(),
                 new TestOutputSink(Output))
         });
     }
