@@ -2,5 +2,5 @@
 
 public class IntegrationTestLoggerOptions
 {
-    public bool EnableScopes { get; set; } = true;
+    public bool IsScopesEnabled { get; set; } = true;
 }

@@ -67,7 +67,7 @@ public class UnitTest1
                     new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                     new IntegrationTestLoggerOptions
                     {
-                        EnableScopes = false,
+                        IsScopesEnabled = false,
                     },
                     new PlainTextLogFormatter()
                 ));
@@ -106,7 +106,7 @@ public class UnitTest1
                     new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                     new IntegrationTestLoggerOptions
                     {
-                        EnableScopes = false,
+                        IsScopesEnabled = false,
                     },
                     new PlainTextLogFormatter()
                 ));
@@ -143,7 +143,7 @@ public class UnitTest1
                 new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                 new IntegrationTestLoggerOptions
                 {
-                    EnableScopes = false,
+                    IsScopesEnabled = false,
                 },
                 new PlainTextLogFormatter()
             ));
@@ -177,7 +177,7 @@ public class UnitTest1
                 new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                 new IntegrationTestLoggerOptions
                 {
-                    EnableScopes = true,
+                    IsScopesEnabled = true,
                 },
                 new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
@@ -205,7 +205,7 @@ public class UnitTest1
                 new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                 new IntegrationTestLoggerOptions
                 {
-                    EnableScopes = true,
+                    IsScopesEnabled = true,
                 },
                 new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
@@ -235,7 +235,7 @@ public class UnitTest1
                 new Dictionary<string, LogLevel> { { "Default", LogLevel.Debug } },
                 new IntegrationTestLoggerOptions
                 {
-                    EnableScopes = true,
+                    IsScopesEnabled = true,
                 },
                 new PlainTextLogFormatter(),
                 new TestOutputSink(Output)
@@ -277,7 +277,7 @@ public class UnitTest1
                 },
                 new IntegrationTestLoggerOptions
                 {
-                    EnableScopes = false,
+                    IsScopesEnabled = false,
                 },
                 new PlainTextLogFormatter(),
                 new TestOutputSink(Output))

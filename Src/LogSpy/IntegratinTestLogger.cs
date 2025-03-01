@@ -22,131 +22,130 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         ILogSink? sink,
         ILogFormatter formatter)
     {
-        _options = options;
-        _categoryName = categoryName;
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _categoryName = categoryName ?? throw new ArgumentNullException(nameof(categoryName));
+        _captureService = captureService ?? throw new ArgumentNullException(nameof(captureService));
+        _scopes = scopes ?? throw new ArgumentNullException(nameof(scopes));
+        _formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
         _minLogLevel = minLogLevel;
-        _captureService = captureService;
-        _scopes = scopes;
         _sink = sink;
-        _formatter = formatter;
     }
 
+    public bool IsEnabled(LogLevel logLevel) => logLevel >= _minLogLevel;
+
     public IDisposable BeginScope<TState>(TState state)
+        where TState : notnull
     {
-        var scopeStack = _scopes;
-
-        string scopeString;
-        if (state is IDictionary<string, object> dictState)
+        if (!_options.IsScopesEnabled || state == null)
         {
-            scopeString = string.Join(", ", dictState.Select(p => $"{p.Key}: {p.Value}"));
-        }
-        else
-        {
-            scopeString = state?.ToString();
+            return NullScope.Instance;
         }
 
-        scopeStack.Push(scopeString);
+        var scopeString = ConvertScopeStateToString(state);
+        _scopes.Push(scopeString);
 
         return new DisposableScope(() =>
         {
-            if (scopeStack.Count > 0)
+            if (_scopes.Count > 0)
             {
-                scopeStack.Pop();
+                _scopes.Pop();
             }
         });
-    }
-
-    public void Dispose()
-    {
-        (_sink as IDisposable)?.Dispose();
-    }
-
-    public bool IsEnabled(LogLevel logLevel)
-    {
-        return logLevel >= _minLogLevel;
     }
 
     public void Log<TState>(
         LogLevel logLevel,
         EventId eventId,
         TState state,
-        Exception exception,
-        Func<TState, Exception, string> formatter)
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
     {
         if (!IsEnabled(logLevel))
         {
             return;
         }
 
-        // Check for structured state
-        Dictionary<string, object> properties = null;
-        if (state is IReadOnlyList<KeyValuePair<string, object>> stateList)
+        var logEntry = BuildLogEntry(logLevel, eventId, state, exception, formatter);
+        _captureService.AddEntry(logEntry);
+
+        var formattedText = _formatter.Format(logEntry);
+        _sink?.Write(formattedText);
+    }
+
+    public void Dispose()
+    {
+        if (_sink is IDisposable disposableSink)
         {
-            properties = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            foreach (var kv in stateList)
-            {
-                properties[kv.Key] = kv.Value;
-            }
+            disposableSink.Dispose();
         }
+    }
 
-        // Thread & Task info
-        var threadId = Environment.CurrentManagedThreadId;
-        var taskId = Task.CurrentId; // null if not in a known task context
+    private LogEntry BuildLogEntry<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
+    {
+        string message = formatter?.Invoke(state, exception) ?? state?.ToString()!;
 
-        // Correlation
-        var correlationId = CorrelationContext.CurrentId;
-
-        // Activity (System.Diagnostics)
-        var currentActivity = Activity.Current;
-        var traceId = currentActivity?.TraceId.ToString();
-        var spanId = currentActivity?.SpanId.ToString();
-
-        // Build message
-        var message = formatter?.Invoke(state, exception) ?? state?.ToString();
-
-        // Build final LogEntry with all the extra info
-        var logEntry = new LogEntry
+        return new LogEntry
         {
             LogLevel = logLevel,
             EventId = eventId,
             Message = message,
             Exception = exception,
             Category = _categoryName,
-            Scopes = _options.EnableScopes ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
+            Scopes = _options.IsScopesEnabled
+                         ? _scopes.Reverse().ToArray()
+                         : [],
 
-            // NEW fields
-            CorrelationId = correlationId,
-            ThreadId = threadId,
-            TaskId = taskId,
-            TraceId = traceId,
-            SpanId = spanId,
-            Properties = properties ?? new Dictionary<string, object>(),
-            Timestamp = DateTimeOffset.UtcNow
+            CorrelationId = CorrelationContext.CurrentId,
+            ThreadId = Environment.CurrentManagedThreadId,
+            TaskId = Task.CurrentId,
+            TraceId = Activity.Current?.TraceId.ToString(),
+            SpanId = Activity.Current?.SpanId.ToString(),
+            Timestamp = DateTimeOffset.UtcNow,
+            Properties = ExtractStructuredProperties(state)
         };
-
-        // Store it in your capture service
-        _captureService.AddEntry(logEntry);
-
-        // Also format the text for your console/test output if needed
-        _sink?.Write(FormatLogText(logEntry));
     }
 
-    private string FormatLogText(LogEntry entry)
+    private static Dictionary<string, object> ExtractStructuredProperties<TState>(TState state)
     {
-        return _formatter.Format(entry);
+        if (state is IReadOnlyList<KeyValuePair<string, object>> kvList)
+        {
+            return kvList
+                .ToDictionary(k => k.Key, v => v.Value, StringComparer.OrdinalIgnoreCase);
+        }
+
+        return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string ConvertScopeStateToString<TState>(TState state)
+    {
+        if (state is IDictionary<string, object> dictState)
+        {
+            return string.Join(", ", dictState.Select(p => $"{p.Key}: {p.Value}"));
+        }
+        return state?.ToString() ?? string.Empty;
     }
 
     private class DisposableScope : IDisposable
     {
         private readonly Action _disposeAction;
+
         public DisposableScope(Action disposeAction)
         {
             _disposeAction = disposeAction;
         }
 
-        public void Dispose()
-        {
-            _disposeAction?.Invoke();
-        }
+        public void Dispose() => _disposeAction?.Invoke();
+    }
+
+    private sealed class NullScope : IDisposable
+    {
+        public static NullScope Instance { get; } = new NullScope();
+        private NullScope() { }
+        public void Dispose() { }
     }
 }

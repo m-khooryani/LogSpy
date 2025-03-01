@@ -5,8 +5,8 @@ namespace LogSpy;
 public class LogCaptureService
 {
     private readonly ConcurrentQueue<LogEntry> _entries = new();
-    private readonly List<ILogRule> _rules = new();
-    private readonly List<string> _violations = new();
+    private readonly List<ILogRule> _rules = [];
+    private readonly List<string> _violations = [];
 
     public RuleViolationMode Mode { get; set; } = RuleViolationMode.DeferredFail;
 
@@ -31,14 +31,13 @@ public class LogCaptureService
     public void AddEntry(LogEntry entry)
     {
         // 1) Check each rule
-        List<string> localViolations = null;
+        List<string> localViolations = new();
         lock (_rules)
         {
             foreach (var rule in _rules)
             {
                 if (rule.IsViolatedBy(entry))
                 {
-                    localViolations ??= new List<string>();
                     localViolations.Add(rule.ViolationMessage);
                 }
             }
@@ -47,21 +46,21 @@ public class LogCaptureService
         // 2) Handle any violations depending on Mode
         if (localViolations != null)
         {
-            if (Mode == RuleViolationMode.ImmediateFail)
+            switch (Mode)
             {
-                // Throw an exception right away (stop the test)
-                var combinedMsg = string.Join(Environment.NewLine, localViolations);
-                throw new InvalidOperationException(
-                    $"Immediate rule violation: {combinedMsg}"
-                );
-            }
-            else
-            {
-                // Deferred: store them for later
-                lock (_violations)
-                {
-                    _violations.AddRange(localViolations);
-                }
+                case RuleViolationMode.ImmediateFail:
+                    {
+                        var combinedMsg = string.Join(Environment.NewLine, localViolations);
+                        throw new InvalidOperationException($"Immediate rule violation: {combinedMsg}");
+                    }
+
+                case RuleViolationMode.DeferredFail:
+                default:
+                    lock (_violations)
+                    {
+                        _violations.AddRange(localViolations);
+                    }
+                    break;
             }
         }
 
