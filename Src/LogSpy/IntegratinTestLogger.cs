@@ -74,10 +74,7 @@ internal class IntegratinTestLogger : ILogger, IDisposable
 
     public void Dispose()
     {
-        if (_sink is IDisposable disposableSink)
-        {
-            disposableSink.Dispose();
-        }
+        _sink?.Dispose();
     }
 
     private LogEntry BuildLogEntry<TState>(

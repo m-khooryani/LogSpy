@@ -69,7 +69,7 @@ public class UnitTest1
                     {
                         IsScopesEnabled = false,
                     },
-                    new PlainTextLogFormatter()
+                    new MinimalPlainTextLogFormatter()
                 ));
             });
 
@@ -108,7 +108,7 @@ public class UnitTest1
                     {
                         IsScopesEnabled = false,
                     },
-                    new PlainTextLogFormatter()
+                    new MinimalPlainTextLogFormatter()
                 ));
             });
 
@@ -145,7 +145,7 @@ public class UnitTest1
                 {
                     IsScopesEnabled = false,
                 },
-                new PlainTextLogFormatter()
+                new MinimalPlainTextLogFormatter()
             ));
         });
 
@@ -179,7 +179,7 @@ public class UnitTest1
                 {
                     IsScopesEnabled = true,
                 },
-                new PlainTextLogFormatter(),
+                new MinimalPlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -207,7 +207,7 @@ public class UnitTest1
                 {
                     IsScopesEnabled = true,
                 },
-                new PlainTextLogFormatter(),
+                new MinimalPlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -237,7 +237,7 @@ public class UnitTest1
                 {
                     IsScopesEnabled = true,
                 },
-                new PlainTextLogFormatter(),
+                new MinimalPlainTextLogFormatter(),
                 new TestOutputSink(Output)
             ));
         });
@@ -279,7 +279,7 @@ public class UnitTest1
                 {
                     IsScopesEnabled = false,
                 },
-                new PlainTextLogFormatter(),
+                new MinimalPlainTextLogFormatter(),
                 new TestOutputSink(Output))
         });
     }

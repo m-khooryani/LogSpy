@@ -1,6 +1,6 @@
 ﻿namespace LogSpy;
 
-public interface ILogSink
+public interface ILogSink : IDisposable
 {
     void Write(string message);
 }

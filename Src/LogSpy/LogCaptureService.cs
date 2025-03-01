@@ -30,7 +30,40 @@ public class LogCaptureService
 
     public void AddEntry(LogEntry entry)
     {
-        // 1) Check each rule
+        var violations = CheckRules(entry);
+
+        HandleViolations(violations);
+
+        _entries.Enqueue(entry);
+    }
+
+    private void HandleViolations(IReadOnlyList<string> violations)
+    {
+        if (!violations.Any())
+        {
+            return;
+        }
+
+        switch (Mode)
+        {
+            case RuleViolationMode.ImmediateFail:
+                {
+                    var combinedMsg = string.Join(Environment.NewLine, violations);
+                    throw new InvalidOperationException($"Immediate rule violation: {combinedMsg}");
+                }
+
+            case RuleViolationMode.DeferredFail:
+            default:
+                lock (_violations)
+                {
+                    _violations.AddRange(violations);
+                }
+                break;
+        }
+    }
+
+    private IReadOnlyList<string> CheckRules(LogEntry entry)
+    {
         List<string> localViolations = new();
         lock (_rules)
         {
@@ -43,28 +76,6 @@ public class LogCaptureService
             }
         }
 
-        // 2) Handle any violations depending on Mode
-        if (localViolations != null)
-        {
-            switch (Mode)
-            {
-                case RuleViolationMode.ImmediateFail:
-                    {
-                        var combinedMsg = string.Join(Environment.NewLine, localViolations);
-                        throw new InvalidOperationException($"Immediate rule violation: {combinedMsg}");
-                    }
-
-                case RuleViolationMode.DeferredFail:
-                default:
-                    lock (_violations)
-                    {
-                        _violations.AddRange(localViolations);
-                    }
-                    break;
-            }
-        }
-
-        // 3) Finally enqueue the log entry
-        _entries.Enqueue(entry);
+        return localViolations;
     }
 }

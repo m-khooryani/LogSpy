@@ -35,7 +35,7 @@ public class SpyLoggerProvider : ILoggerProvider
             captureService,
             logLevels,
             options,
-            new PlainTextLogFormatter(),
+            new MinimalPlainTextLogFormatter(),
             sink)
     {
     }
@@ -65,5 +65,6 @@ public class SpyLoggerProvider : ILoggerProvider
 
     public void Dispose()
     {
+        _sink?.Dispose();
     }
 }

@@ -11,6 +11,10 @@ public class TestOutputSink : ILogSink
         _testOutput = testOutput;
     }
 
+    public void Dispose()
+    {
+    }
+
     public void Write(string message)
     {
         _testOutput.WriteLine(message);
