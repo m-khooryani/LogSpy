@@ -1,13 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
 
 namespace LogSpy;
 
 internal class IntegratinTestLogger : ILogger, IDisposable
 {
-    private readonly IntegrationTestLoggerOptions _isScopeLoggingEnabled;
+    private readonly IntegrationTestLoggerOptions _options;
     private readonly string _categoryName;
     private readonly LogLevel _minLogLevel;
     private readonly LogCaptureService _captureService;
@@ -24,7 +22,7 @@ internal class IntegratinTestLogger : ILogger, IDisposable
         ILogSink? sink,
         ILogFormatter formatter)
     {
-        _isScopeLoggingEnabled = options;
+        _options = options;
         _categoryName = categoryName;
         _minLogLevel = minLogLevel;
         _captureService = captureService;
@@ -69,11 +67,11 @@ internal class IntegratinTestLogger : ILogger, IDisposable
     }
 
     public void Log<TState>(
-    LogLevel logLevel,
-    EventId eventId,
-    TState state,
-    Exception exception,
-    Func<TState, Exception, string> formatter)
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception exception,
+        Func<TState, Exception, string> formatter)
     {
         if (!IsEnabled(logLevel))
         {
@@ -114,7 +112,7 @@ internal class IntegratinTestLogger : ILogger, IDisposable
             Message = message,
             Exception = exception,
             Category = _categoryName,
-            Scopes = _isScopeLoggingEnabled.EnableScopes ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
+            Scopes = _options.EnableScopes ? _scopes.Reverse().ToArray() : Array.Empty<string>(),
 
             // NEW fields
             CorrelationId = correlationId,

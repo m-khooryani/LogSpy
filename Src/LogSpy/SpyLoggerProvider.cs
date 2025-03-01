@@ -4,7 +4,7 @@ namespace LogSpy;
 
 public class SpyLoggerProvider : ILoggerProvider
 {
-    private readonly IntegrationTestLoggerOptions _isScopeLoggingEnabled;
+    private readonly IntegrationTestLoggerOptions _options;
     private readonly LogCaptureService _captureService;
     private readonly AsyncLocal<Stack<string>> _scopes = new AsyncLocal<Stack<string>>();
     private readonly ILogSink? _sink;  
@@ -19,12 +19,25 @@ public class SpyLoggerProvider : ILoggerProvider
         ILogFormatter formatter,
         ILogSink? sink = null)
     {
-        _isScopeLoggingEnabled = options;
+        _options = options;
         _captureService = captureService;
         _sink = sink;
         _logLevels = logLevels;
         _defaultLogLevel = logLevels["Default"];
         _formatter = formatter;
+    }
+
+    public SpyLoggerProvider(
+        LogCaptureService captureService,
+        IDictionary<string, LogLevel> logLevels,
+        IntegrationTestLoggerOptions options,
+        ILogSink? sink = null) : this(
+            captureService,
+            logLevels,
+            options,
+            new PlainTextLogFormatter(),
+            sink)
+    {
     }
 
     public ILogger CreateLogger(string categoryName)
@@ -45,7 +58,7 @@ public class SpyLoggerProvider : ILoggerProvider
             minLogLevel,
             _captureService,
             _scopes.Value,
-            _isScopeLoggingEnabled,
+            _options,
             _sink,
             _formatter);
     }
