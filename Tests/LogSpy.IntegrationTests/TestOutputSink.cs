@@ -8,7 +8,7 @@ public class TestOutputSink : ILogSink
 
     public TestOutputSink(ITestOutputHelper testOutput)
     {
-        _testOutput = testOutput;
+        _testOutput = testOutput ?? throw new ArgumentNullException(nameof(testOutput));
     }
 
     public void Dispose()
@@ -17,6 +17,12 @@ public class TestOutputSink : ILogSink
 
     public void Write(string message)
     {
-        _testOutput.WriteLine(message);
+        try
+        {
+            _testOutput.WriteLine(message);
+        }
+        catch
+        {
+        }
     }
 }

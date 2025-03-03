@@ -6,7 +6,7 @@ public class SpyLoggerProvider : ILoggerProvider
 {
     private readonly IntegrationTestLoggerOptions _options;
     private readonly LogCaptureService _captureService;
-    private readonly AsyncLocal<Stack<string>> _scopes = new AsyncLocal<Stack<string>>();
+    private readonly Stack<string> _scopes = new Stack<string>();
     private readonly ILogSink? _sink;  
     private readonly LogLevel _defaultLogLevel;
     private readonly IDictionary<string, LogLevel> _logLevels;
@@ -43,7 +43,6 @@ public class SpyLoggerProvider : ILoggerProvider
     public ILogger CreateLogger(string categoryName)
     {
         var minLogLevel = _defaultLogLevel;
-        _scopes.Value = new Stack<string>();
         foreach (var logLevelPair in _logLevels)
         {
             if (categoryName.StartsWith(logLevelPair.Key.TrimEnd('*')))
@@ -57,7 +56,7 @@ public class SpyLoggerProvider : ILoggerProvider
             categoryName,
             minLogLevel,
             _captureService,
-            _scopes.Value,
+            _scopes,
             _options,
             _sink,
             _formatter);
