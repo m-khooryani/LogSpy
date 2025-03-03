@@ -2,7 +2,7 @@ name: Publish Packages
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -21,6 +21,9 @@ jobs:
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
+      
+    - name: Run Tests
+      run: dotnet test --configuration Release --no-restore --logger trx --results-directory ./TestResults
 
     - name: Pack
       run: dotnet pack --configuration Release --output ./artifacts --no-build
